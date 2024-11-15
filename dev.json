@@ -1,0 +1,6 @@
+{
+    "env": "dev",
+    "database_url": "postgresql://postgres:postgres@localhost:5432/monk-commerce?sslmode=disable",
+    "app_name": "monk-commerce",
+    "log_level": "DEBUG"
+}
