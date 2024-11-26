@@ -380,6 +380,7 @@ func (c *CouponService) GetApplicableCoupons(ctx *context.Context, cartItems []d
 				if buyCount > bxgyCoupon.RepetitionLimit {
 					buyCount = bxgyCoupon.RepetitionLimit // Cap buyCount at the repetition limit
 				}
+				
 				isApplicable = true
 				for _, getProduct := range getProducts {
 					for _, item := range cartItems {
@@ -477,7 +478,11 @@ func (c *CouponService) ApplyCoupon(ctx *context.Context, couponId string, cartI
 				}
 			}
 
-			if buyCount > 0 && buyCount <= bxgyCoupon.RepetitionLimit {
+			if buyCount > 0 {
+				if buyCount > bxgyCoupon.RepetitionLimit {
+					buyCount = bxgyCoupon.RepetitionLimit // Cap buyCount at the repetition limit
+				}
+
 				for _, getProduct := range getProducts {
 					for _, cartItem := range cartItems {
 						if cartItem.ProductId == getProduct.ProductID {
