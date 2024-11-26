@@ -512,6 +512,13 @@ func (c *CouponService) DeleteCoupon(ctx *context.Context, couponId string) erro
 		return errors.New("coupon not found")
 	}
 
+	tx := ctx.DB.Begin()
+	ctx.Transaction = tx
+	if tx.Error != nil {
+		ctx.Log.Error("failed to start transaction", zap.Error(tx.Error))
+		return tx.Error
+	}
+
 	// Delete the coupon based on its type (if additional tables are used for specific types)
 	switch coupon.Type {
 	case "cart-wise":
@@ -520,8 +527,23 @@ func (c *CouponService) DeleteCoupon(ctx *context.Context, couponId string) erro
 		err = c.db.DeleteProductWiseCoupon(ctx, couponId)
 	case "bxgy":
 		err = c.db.DeleteBxGyCoupon(ctx, couponId)
+		if err != nil {
+			ctx.Log.Error("error deleting bxgy coupon", zap.Error(err))
+			tx.Rollback()
+			return err
+		}
 		err = c.db.DeleteBxGyBuyProducts(ctx, couponId)
+		if err != nil {
+			ctx.Log.Error("error deleting bxgy buy coupon", zap.Error(err))
+			tx.Rollback()
+			return err
+		}
 		err = c.db.DeleteBxGyGetProducts(ctx, couponId)
+		if err != nil {
+			ctx.Log.Error("error deleting bxgy buy coupon", zap.Error(err))
+			tx.Rollback()
+			return err
+		}
 	}
 	if err != nil {
 		return err
@@ -530,6 +552,14 @@ func (c *CouponService) DeleteCoupon(ctx *context.Context, couponId string) erro
 	// Delete the main coupon entry
 	err = c.db.DeleteCoupon(ctx, couponId)
 	if err != nil {
+		ctx.Log.Error("error deleting main coupon", zap.Error(err))
+		tx.Rollback()
+		return err
+	}
+
+	// Commit the transaction
+	if err = tx.Commit().Error; err != nil {
+		ctx.Log.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}
 
